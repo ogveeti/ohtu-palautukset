@@ -1,7 +1,7 @@
 import unittest
 
 from player import Player
-from statistics_service import StatisticsService
+from statistics_service import StatisticsService, SortBy
 
 
 class PlayerReaderStub:
@@ -57,3 +57,38 @@ class TestStatisticsService(unittest.TestCase):
         players = self.stats.top(0)
 
         self.assertEqual([player.name for player in players], ["Gretzky"])
+
+    def test_top_by_points_matches_default_order(self):
+        self.assertEqual(self.stats.top(4, SortBy.POINTS), self.stats.top(4))
+
+    def test_top_by_goals_returns_players_in_descending_goals_order(self):
+        players = self.stats.top(4, SortBy.GOALS)
+
+        self.assertEqual(
+            [player.name for player in players],
+            ["Lemieux", "Yzerman", "Kurri", "Gretzky", "Semenko"],
+        )
+
+    def test_top_by_assists_returns_players_in_descending_assists_order(self):
+        players = self.stats.top(4, SortBy.ASSISTS)
+
+        self.assertEqual(
+            [player.name for player in players],
+            ["Gretzky", "Yzerman", "Lemieux", "Kurri", "Semenko"],
+        )
+
+    def test_top_limits_results_after_sorting_by_selected_criterion(self):
+        cases = [
+            (SortBy.POINTS, ["Gretzky", "Lemieux"]),
+            (SortBy.GOALS, ["Lemieux", "Yzerman"]),
+            (SortBy.ASSISTS, ["Gretzky", "Yzerman"]),
+        ]
+
+        for sort_by, expected_names in cases:
+            with self.subTest(sort_by=sort_by):
+                # Nykyinen rajaus palauttaa how_many + 1 pelaajaa.
+                players = self.stats.top(1, sort_by)
+
+                self.assertEqual(
+                    [player.name for player in players], expected_names
+                )
