@@ -1,0 +1,14 @@
+[project]
+name = "uv-web"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "sqlalchemy==1.4.54",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
