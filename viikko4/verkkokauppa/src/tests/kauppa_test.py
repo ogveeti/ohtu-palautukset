@@ -75,3 +75,57 @@ class TestKauppa(unittest.TestCase):
         self.pankki_mock.tilisiirto.assert_called_with(
             "pekka", ANY, "12345", "33333-44455", 5
         )
+
+    def test_asioinnin_aloittaminen_nollaa_edellisen_ostoksen_tiedot(self):
+        self.kauppa.aloita_asiointi()
+        self.kauppa.lisaa_koriin(1)
+        self.kauppa.tilimaksu("pekka", "12345")
+
+        self.pankki_mock.tilisiirto.assert_called_with(
+            "pekka", ANY, "12345", "33333-44455", 5
+        )
+
+        self.kauppa.aloita_asiointi()
+        self.kauppa.lisaa_koriin(2)
+        self.kauppa.tilimaksu("pekka", "12345")
+
+        self.pankki_mock.tilisiirto.assert_called_with(
+            "pekka", ANY, "12345", "33333-44455", 3
+        )
+
+    def test_jokaiselle_maksutapahtumalle_pyydetaan_uusi_viitenumero(self):
+        self.viitegeneraattori_mock.uusi.side_effect = [42, 43]
+
+        self.kauppa.aloita_asiointi()
+        self.kauppa.lisaa_koriin(1)
+        self.kauppa.tilimaksu("pekka", "12345")
+
+        self.viitegeneraattori_mock.uusi.assert_called_once_with()
+        self.pankki_mock.tilisiirto.assert_called_with(
+            "pekka", 42, "12345", "33333-44455", 5
+        )
+
+        self.kauppa.aloita_asiointi()
+        self.kauppa.lisaa_koriin(2)
+        self.kauppa.tilimaksu("pekka", "12345")
+
+        self.assertEqual(self.viitegeneraattori_mock.uusi.call_count, 2)
+        self.pankki_mock.tilisiirto.assert_called_with(
+            "pekka", 43, "12345", "33333-44455", 3
+        )
+
+    def test_korista_poistetaan_vain_yksi_kappale_ja_palautetaan_varastoon(self):
+        self.kauppa.aloita_asiointi()
+        self.kauppa.lisaa_koriin(1)
+        self.kauppa.lisaa_koriin(1)
+        self.kauppa.lisaa_koriin(2)
+
+        self.kauppa.poista_korista(1)
+        self.kauppa.tilimaksu("pekka", "12345")
+
+        self.varasto_mock.palauta_varastoon.assert_called_once_with(
+            Tuote(1, "maito", 5)
+        )
+        self.pankki_mock.tilisiirto.assert_called_with(
+            "pekka", ANY, "12345", "33333-44455", 8
+        )
